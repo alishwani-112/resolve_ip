@@ -1,0 +1,46 @@
+#!/bin/bash
+
+while getopts ":i:o:" opt; do
+  case $opt in
+    i)
+      input_file="$OPTARG"
+      ;;
+    o)
+      output_file="$OPTARG"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z "$input_file" || -z "$output_file" ]]; then
+  echo "Usage: $0 -i <input_file> -o <output_file>"
+  exit 1
+fi
+
+# Function to resolve subdomains to IP addresses
+resolve_subdomains() {
+  local input="$1"
+  local output="$2"
+  
+  while read -r subdomain; do
+    ip=$(host "$subdomain" | grep -oP '(\d+\.){3}\d+')
+
+    if [ -n "$ip" ]; then
+      echo "$subdomain:$ip" >> "$output"
+    else
+      echo "Failed to resolve $subdomain" >&2
+    fi
+  done < "$input"
+}
+
+# Perform the resolution
+resolve_subdomains "$input_file" "$output_file"
+
+echo "Resolution completed. Results saved to $output_file."
